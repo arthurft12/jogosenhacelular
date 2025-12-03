@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jogo da Senha — Web</title>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f1f3f8;
+  margin:0;
+  padding:16px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  box-sizing:border-box;
+}
+
+.card{
+  background:white;
+  width:100%;
+  max-width:580px;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 4px 25px rgba(0,0,0,0.12);
+}
+
+h1{
+  margin-top:0;
+  text-align:center;
+  font-size:1.8rem;
+  color:#1e293b;
+}
+
+/* CONSOLE */
+#console{
+  background:#0a0f1c;
+  color:#e2e8f0;
+  width:100%;
+  height:60vh;
+  min-height:330px;
+  overflow:auto;
+  padding:16px;
+  border-radius:12px;
+  font-family: monospace;
+  white-space:pre-wrap;
+  font-size:1rem;
+  line-height:1.5em;
+  box-sizing:border-box;
+}
+
+.controls{
+  display:flex;
+  gap:10px;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+
+/* CAMPO */
+input[type="text"]{
+  flex:1;
+  padding:14px;
+  font-size:1.1rem;
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  outline:none;
+  box-sizing:border-box;
+}
+
+button{
+  flex:1;
+  padding:14px;
+  font-size:1.1rem;
+  border-radius:10px;
+  border:0;
+  background:#2563eb;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.15s;
+  box-sizing:border-box;
+}
+
+button.secondary{
+  background:#334155;
+}
+
+button:active{
+  transform:scale(0.97);
+}
+
+@media (max-width:480px){
+  #console{
+    height:58vh;
+    font-size:1.05rem;
+    padding:14px;
+  }
+  input[type="text"], button{
+    font-size:1.15rem;
+    width:100%;
+  }
+  .controls{
+    flex-direction:column;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+
+<h1>Jogo da Senha</h1>
+
+<!-- ⚠️ MUITO IMPORTANTE: console SEM NADA DENTRO -->
+<div id="console"></div>
+
+<div class="controls">
+  <input id="inputField" type="text" maxlength="4" placeholder="Digite 4 dígitos (1-6)" inputmode="numeric" pattern="[1-6]*">
+  <button id="sendBtn">Enviar</button>
+  <button id="startBtn" class="secondary">Iniciar</button>
+  <button id="helpBtn" class="secondary">Ajuda</button>
+</div>
+
+</div>
+
+<script>
+(function(){
+
+  const consoleEl = document.getElementById("console");
+  const input = document.getElementById("inputField");
+
+  function println(text = "") {
+    consoleEl.textContent += text + "\n";
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  /* MENU */
+  function introMenu(){
+    println("=====================================");
+    println("          JOGO DA SENHA");
+    println("=====================================");
+    println("Clique em INICIAR para jogar.");
+    println("Clique em AJUDA para ver as regras.");
+    println("");
+  }
+
+  /* AJUDA */
+  function help(){
+    println("");
+    println("========== AJUDA ==========");
+    println("• A senha tem 4 dígitos de 1 a 6.");
+    println("• Você tem 10 tentativas.");
+    println("• 'o' = posição correta.");
+    println("• 'x' = número existe mas fora da posição.");
+    println("• '_' = número inexistente.");
+    println("============================");
+    println("");
+  }
+
+  function rand(){ return Math.floor(Math.random()*6)+1; }
+
+  let secret = null;
+  let attempts = 0;
+  let running = false;
+
+  function startGame(){
+    secret = [rand(), rand(), rand(), rand()];
+    attempts = 1;
+    running = true;
+    consoleEl.textContent = "";
+
+    println("=====================================");
+    println("          JOGO DA SENHA");
+    println("=====================================");
+    println("Jogo iniciado!");
+    println("Tentativa 1 de 10");
+    println("Digite 4 dígitos:");
+    println("");
+
+    input.value = "";
+    input.focus();
+  }
+
+  function valid(s){ return /^[1-6]{4}$/.test(s); }
+
+  function compute(guess){
+    let pos=0, val=0;
+    let usedS=[0,0,0,0], usedG=[0,0,0,0];
+
+    for(let i=0;i<4;i++){
+      if(guess[i]===secret[i]){
+        pos++;
+        usedS[i]=usedG[i]=1;
+      }
+    }
+
+    for(let i=0;i<4;i++){
+      if(usedG[i]) continue;
+      for(let j=0;j<4;j++){
+        if(usedS[j]) continue;
+        if(guess[i]===secret[j]){
+          val++;
+          usedS[j]=usedG[i]=1;
+          break;
+        }
+      }
+    }
+
+    return {pos,val};
+  }
+
+  function sendGuess(){
+    if(!running){
+      println("Clique em 'Iniciar' para começar.");
+      return;
+    }
+
+    const value = input.value.trim();
+    if(!valid(value)){
+      running = false;
+      println("FIM DE JOGO — número inválido.");
+      return;
+    }
+
+    const g = value.split("").map(Number);
+
+    if(g.join("") === secret.join("")){
+      println("Você tentou: " + value);
+      println("Resultado: oooo");
+      println("PARABÉNS! Você descobriu!");
+      running = false;
+      return;
+    }
+
+    const fb = compute(g);
+    let line="";
+
+    for(let i=0;i<4;i++){
+      if(g[i]===secret[i]) line+="o";
+      else if(secret.includes(g[i])) line+="x";
+      else line+="_";
+    }
+
+    println("Você tentou: " + value);
+    println("Tentativa " + attempts + ": " + line);
+    println("Posição correta : " + fb.pos);
+    println("Fora de posição : " + fb.val);
+    println("");
+
+    attempts++;
+
+    if(attempts > 10){
+      println("Acabaram as tentativas!");
+      println("Senha correta: " + secret.join(""));
+      running = false;
+      return;
+    }
+
+    println("Tentativa " + attempts + " de 10");
+    println("Digite 4 dígitos:");
+    println("");
+
+    input.value="";
+    input.focus();
+  }
+
+  document.getElementById("sendBtn").onclick = sendGuess;
+  document.getElementById("startBtn").onclick = startGame;
+  document.getElementById("helpBtn").onclick = help;
+  input.addEventListener("keyup", e => { if(e.key==="Enter") sendGuess(); });
+
+  introMenu();
+
+})();
+</script>
+
+</body>
+</html>
